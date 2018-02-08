@@ -1,2 +1,2 @@
-# OperatingSystems
-Class projects
+# Operating Systems
+Group class projects
