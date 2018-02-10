@@ -6,6 +6,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+void fcfs();
+void sjf();
+void rr();
+void parser();
+
 typedef struct
 { 
 	char name[5];
@@ -15,14 +21,63 @@ typedef struct
 
 int processCount, runFor, quantum;
 char method[5], token[15];
+FILE *in;
 proc *p;
 
 int main()
 {
-	FILE * in = fopen("processes.in", "r");
+	parser();
 
+	// I used this for testing only
+	printf("Processcount %d\n", processCount);
+	printf("runfor %d\n", runFor);
+	printf("Using %s\n", method);
+	printf("Quantum %d\n", quantum);
+	for(int i=0; i<processCount ; i++)
+	{
+		printf("%s  ", p[i].name);
+		printf("%d  ", p[i].arrival);
+		printf("%d\n", p[i].burst);
+	}
+
+	if(strcmp(method, "fcfs") == 0)
+	{
+		fcfs();
+	}
+	else if(strcmp(method, "sjf") == 0)
+	{
+		sjf();
+	}
+	else if(strcmp(method, "rr") == 0)
+	{
+		rr();
+	}
+
+	return 0;
+}
+
+
+void fcfs()
+{
+
+}
+
+void sjf()
+{
+
+}
+
+void rr()
+{
+
+}
+
+void parser()
+{
+	in = fopen("processes.in", "r");
 	fscanf(in, "%s", token);
 
+	// Parser
 	while(strcmp(token, "end") != 0 && !feof(in))
 	{
 		if(strcmp(token, "processcount") == 0)
@@ -83,20 +138,4 @@ int main()
 		}
 
 	}
-
-	// I used this for testing only
-	printf("Processcount %d\n", processCount);
-	printf("runfor %d\n", runFor);
-	printf("Using %s\n", method);
-	printf("Quantum %d\n", quantum);
-	for(int i=0; i<processCount ; i++)
-	{
-		printf("%s  ", p[i].name);
-		printf("%d  ", p[i].arrival);
-		printf("%d\n", p[i].burst);
-	}
-
-
-
 }
-
