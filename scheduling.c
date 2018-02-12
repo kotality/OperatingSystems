@@ -6,11 +6,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-
+// int wait();
+// int turnaround();
+void printRR(int);
 void fcfs();
 void sjf();
 void rr();
 void parser();
+void printInfo();
 
 typedef struct
 { 
@@ -27,18 +30,7 @@ proc *p;
 int main()
 {
 	parser();
-
-	// I used this for testing only
-	printf("Processcount %d\n", processCount);
-	printf("runfor %d\n", runFor);
-	printf("Using %s\n", method);
-	printf("Quantum %d\n", quantum);
-	for(int i=0; i<processCount ; i++)
-	{
-		printf("%s  ", p[i].name);
-		printf("%d  ", p[i].arrival);
-		printf("%d\n", p[i].burst);
-	}
+	printInfo();
 
 	if(strcmp(method, "fcfs") == 0)
 	{
@@ -56,20 +48,130 @@ int main()
 	return 0;
 }
 
-
 void fcfs()
 {
-
 }
 
 void sjf()
 {
-
 }
 
 void rr()
 {
+	int *remainingBurst = malloc(sizeof(int)*processCount);
+	int timeCounter = 0;
+	int running = 1;
+	int loop = 0;
 
+	// Copy burst times of each process into separate tracking array
+	for (int j = 0; j < processCount; j++)
+	{
+		remainingBurst[j] = p[j].burst;
+	}
+
+	printRR(timeCounter);
+
+	while (running)
+	{
+		running = 0;
+
+		for (int i = 0; i < runFor; i++)
+		{
+			if (remainingBurst[i] > quantum)
+			{		
+				loop++;		
+				running = 1;
+				timeCounter += quantum;
+				remainingBurst[i] -= quantum;
+
+				printRR(timeCounter);
+				// printf("loop count: %d\n", loop);
+			}
+			else  // smaller than quantum left
+			{
+				timeCounter += remainingBurst[i];
+				// wait();
+				remainingBurst[i] = 0;
+				// printRR(timeCounter);
+			}
+		}
+
+		if (running == 0);
+			break;
+	}
+
+	free(remainingBurst);
+}
+
+// int wait()
+// {
+// 	int wait = completionTime - burstTime;
+// 	return wait;
+// }
+
+// int turnaround()
+// {
+// 	int turnaround = completionTime - arrivalTime;
+// 	return turnaround;
+// }
+
+void printInfo()
+{
+	// Outputs number of processes, type of scheduling, and quantum value
+	printf("%d processes\n", processCount);
+	if (strcmp(method, "fcfs") == 0)
+	{
+		printf("Using First Come First Served\n\n");
+	}
+	else if (strcmp(method, "sjf") == 0)
+	{
+		printf("Using Shortest Job First\n\n");
+	}
+	else if (strcmp(method, "rr") == 0)
+	{
+		printf("Using Round-Robin\n");
+		printf("Quantum %d\n\n", quantum);
+	}
+
+	// I used this for testing only
+	// printf("Processcount %d\n", processCount);
+	// printf("runfor %d\n", runFor);
+	// printf("Using %s\n", method);
+	// printf("Quantum %d\n", quantum);
+	// for(int i=0; i<processCount ; i++)
+	// {
+	// 	printf("%s  ", p[i].name);
+	// 	printf("%d  ", p[i].arrival);
+	// 	printf("%d\n", p[i].burst);
+	// }
+}
+
+void printRR(int timeCounter)
+{
+	int i;
+	char arrival[10] = "";
+
+	// printf("%d process\n", processCount);
+	// printf("timecounter %d\n", timeCounter);
+	
+	// Outputs the execution timeline
+	for (i = 0; i < processCount; i++)
+	{
+		printf("Time %d: ", timeCounter);
+
+		if (timeCounter == p[i].arrival)
+		{
+			strcpy(arrival, "arrived");
+			printf("%s %s", p[i].name, arrival);
+		}
+		else
+		{
+			strcpy(arrival, "selected");
+			printf("%s %s (burst %d)", p[i].name, arrival, p[i].burst);
+		}
+	
+		printf("\n");
+	}
 }
 
 void parser()
