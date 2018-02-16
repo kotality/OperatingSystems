@@ -6,14 +6,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-// int wait();
-// int turnaround();
-void printRR(int);
 void fcfs();
 void sjf();
 void rr();
+void printRR(int, char*, int);
+int waitingTime(int, int);
+int turnaround(int, int);
 void parser();
-void printInfo();
 
 typedef struct
 { 
@@ -24,6 +23,7 @@ typedef struct
 
 int processCount, runFor, quantum;
 char method[5], token[15];
+FILE *in;
 proc *p;
 
 int main()
@@ -31,20 +31,6 @@ int main()
 	// parse the input file and store the info in the variables
 	// processCount, runFor, quantum, method, and the array p
 	parser();
-	printInfo();
-
-	// For testing only: print the info from the input file
-	/*int i;
-	printf("Processcount %d\n", processCount);
-	printf("runfor %d\n", runFor);
-	printf("Using %s\n", method);
-	printf("Quantum %d\n", quantum);
-	for(i=0 ; i<processCount ; i++)
-	{
-		printf("%s  ", p[i].name);
-		printf("%d  ", p[i].arrival);
-		printf("%d\n", p[i].burst);
-	}*/
 
 	// Call the correct scheduler based on the method
 	if(strcmp(method, "fcfs") == 0)
@@ -219,126 +205,138 @@ void sjf()
 
 void rr()
 {
-	int *remainingBurst = malloc(sizeof(int)*processCount);
-	int timeCounter = 0;
-	int running = 1;
-	int loop = 0;
+	FILE *out = fopen("processes.out", "w");
+	int timeCounter, prevTimeCounter, processNum = processCount, finished = 0;
+	int i, j, k, m, n, w;
+	int temp, temp2;
+	char temp3[10];
 
-	// Copy burst times of each process into separate tracking array
-	for (int j = 0; j < processCount; j++)
+	int *remainingBurst = malloc(sizeof(int) * processCount);
+	int *wait = malloc(sizeof(int) * processCount);
+	int *turn = malloc(sizeof(int) * processCount);
+
+	// Print scheduling and quantum info
+	fprintf(out, "%d processes\n", processCount);
+	fprintf(out, "Using Round-Robin\n");
+	fprintf(out, "Quantum %d\n\n", quantum);
+
+	// Sort processes by arrival time
+	for (k = 0; k < processCount; k++)
 	{
-		remainingBurst[j] = p[j].burst;
-	}
-
-	printRR(timeCounter);
-
-	while (running)
-	{
-		running = 0;
-
-		for (int i = 0; i < runFor; i++)
+		for (m = 0; m < processCount; m++)
 		{
-			if (remainingBurst[i] > quantum)
-			{		
-				loop++;		
-				running = 1;
-				timeCounter += quantum;
-				remainingBurst[i] -= quantum;
-
-				printRR(timeCounter);
-				// printf("loop count: %d\n", loop);
-			}
-			else  // smaller than quantum left
+			if (p[m].arrival > p[k].arrival)
 			{
-				timeCounter += remainingBurst[i];
-				// wait();
-				remainingBurst[i] = 0;
-				// printRR(timeCounter);
+				temp = p[k].arrival;
+				p[k].arrival = p[m].arrival;
+				p[m].arrival = temp;
+
+				temp2 = p[k].burst;
+				p[k].burst = p[m].burst;
+				p[m].burst = temp2;
+
+				strcpy(temp3, p[k].name);
+				strcpy(p[k].name, p[m].name);
+				strcpy(p[m].name, temp3);
 			}
 		}
-
-		if (running == 0);
-			break;
 	}
 
-	free(remainingBurst);
-}
-
-// int wait()
-// {
-// 	int wait = completionTime - burstTime;
-// 	return wait;
-// }
-
-// int turnaround()
-// {
-// 	int turnaround = completionTime - arrivalTime;
-// 	return turnaround;
-// }
-
-void printInfo()
-{
-	// Outputs number of processes, type of scheduling, and quantum value
-	printf("%d processes\n", processCount);
-	if (strcmp(method, "fcfs") == 0)
-	{
-		printf("Using First Come First Served\n\n");
-	}
-	else if (strcmp(method, "sjf") == 0)
-	{
-		printf("Using Shortest Job First\n\n");
-	}
-	else if (strcmp(method, "rr") == 0)
-	{
-		printf("Using Round-Robin\n");
-		printf("Quantum %d\n\n", quantum);
-	}
-
-	// I used this for testing only
-	// printf("Processcount %d\n", processCount);
-	// printf("runfor %d\n", runFor);
-	// printf("Using %s\n", method);
-	// printf("Quantum %d\n", quantum);
-	// for(int i=0; i<processCount ; i++)
-	// {
-	// 	printf("%s  ", p[i].name);
-	// 	printf("%d  ", p[i].arrival);
-	// 	printf("%d\n", p[i].burst);
-	// }
-}
-
-void printRR(int timeCounter)
-{
-	int i;
-	char arrival[10] = "";
-
-	// printf("%d process\n", processCount);
-	// printf("timecounter %d\n", timeCounter);
-	
-	// Outputs the execution timeline
+	// Set up arrays for wait time, turnaround time, burst time
 	for (i = 0; i < processCount; i++)
 	{
-		printf("Time %d: ", timeCounter);
+		remainingBurst[i] = p[i].burst;
+		wait[i] = 0;
+		turn[i] = 0;
+		// fprintf(out,"NAME %s ARRIVAL %d BURST %d\n", p[i].name, p[i].arrival, p[i].burst);
+	}
 
-		if (timeCounter == p[i].arrival)
+	prevTimeCounter = 0;
+	for (timeCounter = 0, j = 0; processCount != 0;)
+	{
+		// Prints first process arrival
+		if (p[j].arrival == timeCounter)
 		{
-			strcpy(arrival, "arrived");
-			printf("%s %s", p[i].name, arrival);
+			fprintf(out, "Time %d: %s arrived\n", timeCounter, p[j].name);
+		}
+
+		if (remainingBurst[j] <= quantum && remainingBurst[j] > 0)
+		{
+			fprintf(out, "Time %d: %s selected (burst %d)\n", timeCounter, p[j].name, remainingBurst[j]);
+			prevTimeCounter = timeCounter;
+			timeCounter += remainingBurst[j];
+			remainingBurst[j] = 0;
+			finished = 1;
+		}
+		else if (remainingBurst[j] > 0)
+		{
+			// Check for arrival times in between new quantum
+			while (p[j].arrival > prevTimeCounter && p[j].arrival <= timeCounter)
+			{
+				fprintf(out, "Time %d: %s arrived\n", p[j].arrival, p[j].name);
+				prevTimeCounter++;
+			}
+
+			fprintf(out, "Time %d: %s selected (burst %d)\n", timeCounter, p[j].name, remainingBurst[j]);
+			remainingBurst[j] -= quantum;
+			prevTimeCounter = timeCounter;
+			timeCounter += quantum;
+		}
+
+		if (remainingBurst[j] == 0 && finished == 1)
+		{
+			fprintf(out, "Time %d: %s finished\n", timeCounter, p[j].name);
+			processCount--;
+			wait[j] += waitingTime(timeCounter, j);
+			turn[j] += turnaround(timeCounter, j);
+			finished = 0;
+		}
+
+		if (j == (processCount - 1))
+		{
+			j = 0;
+		}
+		else if (p[j+1].arrival <= timeCounter)
+		{
+			j++;
 		}
 		else
 		{
-			strcpy(arrival, "selected");
-			printf("%s %s (burst %d)", p[i].name, arrival, p[i].burst);
+			j = 0;
 		}
-	
-		printf("\n");
+
+		// For idle processes
+		if (processCount == 0 && timeCounter < runFor)
+		{			
+			fprintf(out, "Time %d: Idle\n", timeCounter);
+		}
 	}
+
+	// Print wait and turnaround 
+	fprintf(out, "Finished at time %d\n", runFor);
+	for (n = processNum - 1; n > -1; n--)
+	{
+		fprintf(out, "\n%s wait %d turnaround %d", p[n].name, wait[n], turn[n]);
+	}
+
+	free(wait);
+	free(turn);
+	free(remainingBurst);
 }
 
+int waitingTime(int timeCounter, int count)
+{
+	return (timeCounter - p[count].arrival - p[count].burst);
+}
+
+int turnaround(int timeCounter, int count)
+{
+	return (timeCounter - p[count].arrival);
+}
 
 void parser()
 {
-	FILE *in = fopen("process.in", "r");
+	in = fopen("processes.in", "r");
 	fscanf(in, "%s", token);
 
 	// Parser
