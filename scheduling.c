@@ -131,10 +131,10 @@ void fcfs()
 
 void sjf()
 {
-	int waitimes[10];
-    int remt[10];
-    int arr[10], sel[10];
-    int turnt[10];
+	int waitimes[processCount];
+    int remt[processCount];
+    int arr[processCount], sel[processCount];
+    int turnt[processCount];
     int last = 0, time=0, sp, min = 2000, finishtime, l=0;
     int check;
      int nu=1,i,z,a;
