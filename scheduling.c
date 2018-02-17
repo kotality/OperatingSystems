@@ -1,4 +1,4 @@
-// Novira Farnaz, Kenia Castro, Sandy Demian
+// Novaira Farnaz, Kenia Castro, Sandy Demian
 // COP 4600, Spring 2018
 // Assignment 1: Scheduling
 
@@ -137,17 +137,17 @@ void sjf()
     int turnt[10];
     int last = 0, time=0, sp, min = 2000, finishtime, l=0;
     int check;
-     int nu=1;
-    for(int a=0; a<processCount;a++){
+     int nu=1,i,z,a;
+    for(a=0; a<processCount;a++){
         remt[a] = p[a].burst;
         arr[a] = 0;
         sel[a] = 0;
     }
-    
+    FILE *out = fopen("processes.out", "w");
     while (last != processCount) {
-        for(int i = 0; i<processCount; i++){
+        for(i = 0; i<processCount; i++){
             if(p[i].arrival == time && arr[i]==0){
-                printf("Time %d: %s arrived\n",time, p[i].name);
+                fprintf(out,"Time %d: %s arrived\n",time, p[i].name);
 		        arr[i] = 1;
 		    }
             if ((p[i].arrival <= time) && (remt[i]<=min) && (remt[i]>0)){
@@ -166,7 +166,7 @@ void sjf()
         }
 		
 		if (sel[sp]==0){
-           printf("Time %d: %s selected (burst %d)\n",time, p[sp].name, remt[sp]);
+           fprintf(out,"Time %d: %s selected (burst %d)\n",time, p[sp].name, remt[sp]);
 		   sel[sp] = 1;
 		}
         
@@ -179,7 +179,7 @@ void sjf()
         if (remt[sp]==0){
             last++;
             finishtime = time + 1;
-			printf("Time %d: %s finished\n", finishtime, p[sp].name);
+			fprintf(out,"Time %d: %s finished\n", finishtime, p[sp].name);
             waitimes[sp] = finishtime - p[sp].burst - p[sp].arrival;
             turnt[sp] = p[sp].burst + waitimes[sp];
 
@@ -192,13 +192,13 @@ void sjf()
 
 	if(finishtime<runFor){
 		int sub = runFor - finishtime;
-		for(int z=0;z<sub;z++){
-            printf("Time %d: IDLE\n",finishtime++);
+		for(z=0;z<sub;z++){
+            fprintf(out,"Time %d: IDLE\n",finishtime++);
 		}
            
 		   printf("Finished at time %d\n",runFor);
-		   for(int z=0;z<processCount;z++){
-			   printf("%s wait %d turnaround %d\n",p[z].name, waitimes[z], turnt[z]);
+		   for(z=0;z<processCount;z++){
+			   fprintf(out, "%s wait %d turnaround %d\n",p[z].name, waitimes[z], turnt[z]);
 		   }
 	}
 }
