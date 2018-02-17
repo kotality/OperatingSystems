@@ -336,6 +336,7 @@ int turnaround(int timeCounter, int count)
 
 void parser()
 {
+	int i;
 	in = fopen("processes.in", "r");
 	fscanf(in, "%s", token);
 
@@ -375,7 +376,7 @@ void parser()
 		{
 			p = malloc(sizeof(proc)*processCount);
 
-			for(int i=0; i<processCount ; i++)
+			for(i=0; i<processCount ; i++)
 			{
 				fscanf(in, "%s", token);
 
