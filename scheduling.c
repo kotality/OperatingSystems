@@ -98,7 +98,7 @@ void fcfs()
 	}
 
 	// Print to a file
-	FILE *out = fopen("process.out", "w");
+	FILE *out = fopen("processes.out", "w");
 
 	fprintf(out, "%d processes\n", processCount);
 	fprintf(out, "Using First Come First Served\n\n");
@@ -248,7 +248,6 @@ void rr()
 		remainingBurst[i] = p[i].burst;
 		wait[i] = 0;
 		turn[i] = 0;
-		// fprintf(out,"NAME %s ARRIVAL %d BURST %d\n", p[i].name, p[i].arrival, p[i].burst);
 	}
 
 	prevTimeCounter = 0;
@@ -260,6 +259,7 @@ void rr()
 			fprintf(out, "Time %d: %s arrived\n", timeCounter, p[j].name);
 		}
 
+		// Check for remaining burst value and prints proceses statuses
 		if (remainingBurst[j] <= quantum && remainingBurst[j] > 0)
 		{
 			fprintf(out, "Time %d: %s selected (burst %d)\n", timeCounter, p[j].name, remainingBurst[j]);
@@ -269,12 +269,11 @@ void rr()
 			finished = 1;
 		}
 		else if (remainingBurst[j] > 0)
-		{
-			// Check for arrival times in between new quantum
-			while (p[j].arrival > prevTimeCounter && p[j].arrival <= timeCounter)
+		{			
+			for (w = prevTimeCounter; w <= timeCounter; w++)
 			{
-				fprintf(out, "Time %d: %s arrived\n", p[j].arrival, p[j].name);
-				prevTimeCounter++;
+				if (p[j].arrival == w && prevTimeCounter > 0)
+					fprintf(out, "Time %d: %s arrived\n", p[j].arrival, p[j].name);
 			}
 
 			fprintf(out, "Time %d: %s selected (burst %d)\n", timeCounter, p[j].name, remainingBurst[j]);
@@ -283,6 +282,7 @@ void rr()
 			timeCounter += quantum;
 		}
 
+		// Checks if process has finished burst
 		if (remainingBurst[j] == 0 && finished == 1)
 		{
 			fprintf(out, "Time %d: %s finished\n", timeCounter, p[j].name);
@@ -292,7 +292,7 @@ void rr()
 			finished = 0;
 		}
 
-		if (j == (processCount - 1))
+		if (j == processCount - 1 && remainingBurst[j] != 0)
 		{
 			j = 0;
 		}
