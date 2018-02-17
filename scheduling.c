@@ -144,6 +144,8 @@ void sjf()
         sel[a] = 0;
     }
     FILE *out = fopen("processes.out", "w");
+	fprintf(out, "%d processes\n", processCount);
+    fprintf(out, "Using Shortest Job First (Pre)\n\n");
     while (last != processCount) {
         for(i = 0; i<processCount; i++){
             if(p[i].arrival == time && arr[i]==0){
