@@ -198,7 +198,7 @@ void sjf()
             fprintf(out,"Time %d: IDLE\n",finishtime++);
 		}
            
-		   printf("Finished at time %d\n\n",runFor);
+		   fprintf(out,"Finished at time %d\n\n",runFor);
 		   for(z=0;z<processCount;z++){
 			   fprintf(out, "%s wait %d turnaround %d\n",p[z].name, waitimes[z], turnt[z]);
 		   }
