@@ -16,13 +16,9 @@ int major_number;
 int retv; //return values of kernel functions.
 dev_t dev_num;  //holds major number and minor number
 #define DEVICE_NAME "gerberDevice" //name of our device driver
-
-/*
-int dev_open(){
-}
-int dev_close(){}
-ssize_t dev_read(){}
-*/
+#define BUF_LEN 1024  // the buffer size
+static char buf[BUF_LEN];	/* The msg the device will give when asked */
+static int buf_index = 0;
 
 struct file_operations fopi ={
 	.owner = THIS_MODULE,
@@ -56,6 +52,7 @@ static int dev_entry(void){
 	sema_init(&virtual_device.sem,1); //inital value of one
 	return 0;
 }
+
 //Deinitialization function
 static void dev_exit(void) {
 
@@ -63,6 +60,69 @@ static void dev_exit(void) {
 	unregister_chrdev_region(dev_num,1);
 	printk(KERN_ALERT "unloaded module");
 }
+
+static int dev_open() {
+}
+
+static int dev_close(){
+	
+}
+
+// read from the buffer
+ssize_t dev_read(struct file *filp,	char *buffer, size_t length, loff_t * offset){
+	// l - buffer - offset
+	int i = 0, j = 0, char_read;
+
+	// return 0 if the buffer is empty
+	if (buf_index == 0)
+	{
+		return 0;
+	}
+
+	// read from the buffer
+	for (i=0 ; i<length && i<buf_index ; i++)
+	{
+		put_user(buf[i], buffer++);
+
+	}
+	char_read = i;
+
+	// if we read everything in the buffer
+	if (i == buf_index)
+	{
+		buf_index = 0;
+	}
+	// if we didn't read everything in the buffer
+	else 
+	{
+		// move what is left in the buffer
+		while (i < buf_index)
+		{
+			buf[j++] = buf[i++];
+		}
+
+		buf_index = j;
+	}
+
+	// return the number of bytes read from the buffer
+	return char_read;
+}
+
+// write to the buffer
+static ssize_t dev_write(struct file *filp, const char *buffer, size_t length, loff_t * off)
+{	
+	int i;
+
+    for( i=0 ; i<length && (buf_index+i)<BUF_LEN ; i++)
+    {
+        get_user(buf[buf_index+i], buffer+i);
+    }
+
+    buf_index = buf_index+i-1;
+
+	return 0;
+}
+
 //Caling functions
 module_init(dev_entry);
 module_exit(dev_exit);
