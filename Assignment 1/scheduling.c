@@ -198,7 +198,7 @@ void sjf()
             fprintf(out,"Time %d: IDLE\n",finishtime++);
 		}
            
-		   fprintf(out,"Finished at time %d\n\n",runFor);
+		   fprintf(out, "Finished at time %d\n\n",runFor);
 		   for(z=0;z<processCount;z++){
 			   fprintf(out, "%s wait %d turnaround %d\n",p[z].name, waitimes[z], turnt[z]);
 		   }
@@ -213,9 +213,9 @@ void rr()
 	int temp, temp2;
 	char temp3[10];
 
-	int *remainingBurst = malloc(sizeof(int) * processCount);
-	int *wait = malloc(sizeof(int) * processCount);
-	int *turn = malloc(sizeof(int) * processCount);
+	int remainingBurst[processCount+1];
+	int wait[processCount+1];
+	int turn[processCount+1];
 
 	// Print scheduling and quantum info
 	fprintf(out, "%d processes\n", processCount);
@@ -253,8 +253,9 @@ void rr()
 	}
 
 	prevTimeCounter = 0;
-	for (timeCounter = 0, j = 0; processCount != 0;)
+	for (timeCounter = 0, j = 0; j < processNum && processCount != 0;)
 	{
+		
 		// Prints first process arrival
 		if (p[j].arrival == timeCounter)
 		{
@@ -284,6 +285,7 @@ void rr()
 			timeCounter += quantum;
 		}
 
+
 		// Checks if process has finished burst
 		if (remainingBurst[j] == 0 && finished == 1)
 		{
@@ -298,8 +300,9 @@ void rr()
 		{
 			j = 0;
 		}
-		else if (p[j+1].arrival <= timeCounter)
+		else if ((j+1) < processNum && p[j+1].arrival <= timeCounter)
 		{
+			//printf("here in time %d\n", timeCounter);
 			j++;
 		}
 		else
@@ -310,7 +313,7 @@ void rr()
 		// For idle processes
 		if (processCount == 0 && timeCounter < runFor)
 		{			
-			fprintf(out, "Time %d: Idle\n", timeCounter);
+			fprintf(out, "Time %d: IDLE\n", timeCounter);
 		}
 	}
 
@@ -321,9 +324,9 @@ void rr()
 		fprintf(out, "\n%s wait %d turnaround %d", p[n].name, wait[n], turn[n]);
 	}
 
-	free(wait);
-	free(turn);
-	free(remainingBurst);
+	//free(wait);
+	//free(turn);
+	//free(remainingBurst);
 }
 
 int waitingTime(int timeCounter, int count)
@@ -376,7 +379,7 @@ void parser()
 		}
 		else if(strcmp(token, "process") == 0)
 		{
-			p = malloc(sizeof(proc)*processCount);
+			p = malloc(sizeof(proc)*(processCount+1));
 
 			for(i=0; i<processCount ; i++)
 			{
