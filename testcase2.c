@@ -15,7 +15,7 @@ int main() {
 	
 	printf("writing a string: Hello World, my name is Sandy");
 	strcpy(write_buf, "Hello World, my name is Sandy");
-	write(fd, write_buf, sizeof(write_buf));
+	write(fd, write_buf, 30);
 
 	read(fd, read_buf, 12);
 	printf("First Read: %s\n", read_buf);
