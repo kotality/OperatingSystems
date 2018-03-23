@@ -118,6 +118,7 @@ static ssize_t dev_read(struct file *filp,	char *buffer, size_t length, loff_t *
 	// return 0 if the buffer is empty
 	if (buf_index == 0)
 	{
+		printk(KERN_INFO "The buffer is empty");
 		return 0;
 	}
 
@@ -128,6 +129,8 @@ static ssize_t dev_read(struct file *filp,	char *buffer, size_t length, loff_t *
 
 	}
 	char_read = i;
+
+	printk(KERN_INFO "Read %d characters from the buffer", char_read);
 
 	// if we read everything in the buffer
 	if (i == buf_index)
@@ -155,12 +158,16 @@ static ssize_t dev_write(struct file *filp, const char *buffer, size_t length, l
 {	
 	int i;
 
+	// write to the buffer
     for( i=0 ; i<length && (buf_index+i)<BUF_LEN ; i++)
     {
         get_user(buf[buf_index+i], buffer+i);
     }
 
+    // update the buffer index
     buf_index = buf_index+i;
+
+    printk(KERN_INFO "Wrote %d characters to the buffer", i);
 
 	return length;
 }

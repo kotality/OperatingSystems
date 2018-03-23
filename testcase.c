@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include<fcntl.h>
 
-#define DEVICE "/dev/gerberDevice"
+#define DEVICE "/dev/gerberdev"
 
 int main() {
 	int i, fd;
