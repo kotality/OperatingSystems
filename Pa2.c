@@ -30,7 +30,7 @@ static ssize_t dev_read(struct file *filp,	char *buffer, size_t length, loff_t *
 static ssize_t dev_write(struct file *filp, const char *buffer, size_t length, loff_t * off);
 
 //global variables
-#define DEVICE_NAME "gerberDevice" //name of our device driver
+#define DEVICE_NAME "gerberdev" //name of our device driver
 #define BUF_LEN 1024  // the buffer size
 
 struct cdev *mcdev; //our character driver
@@ -38,7 +38,7 @@ static int major_number;
 int retv; //return values of kernel functions.
 dev_t dev_num;  //holds major number and minor number
 
-static char buf[BUF_LEN];	/* The msg the device will give when asked */
+static char buf[BUF_LEN];
 static char *buf_Ptr;
 static int buf_index = 0;
 static int Dev_open = 0;
@@ -112,7 +112,7 @@ static int dev_close(struct inode *inode, struct file *filp){
 
 // read from the buffer
 static ssize_t dev_read(struct file *filp,	char *buffer, size_t length, loff_t * offset){
-	// l - buffer - offset
+	
 	int i = 0, j = 0, char_read;
 
 	// return 0 if the buffer is empty
@@ -160,9 +160,9 @@ static ssize_t dev_write(struct file *filp, const char *buffer, size_t length, l
         get_user(buf[buf_index+i], buffer+i);
     }
 
-    buf_index = buf_index+i-1;
+    buf_index = buf_index+i;
 
-	return 0;
+	return length;
 }
 
 //Caling functions
