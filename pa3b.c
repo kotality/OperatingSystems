@@ -13,6 +13,7 @@
 #include <linux/fs.h> //for open/close, read/write to device
 #include <asm/uaccess.h> //copy to user, from user (userSpace Kspace)
 #include <linux/mutex.h>
+#include <linux/vmalloc.h>
 
 MODULE_AUTHOR("Novaira Farnaz, Kenia Castro, Sandy Demian");
 MODULE_DESCRIPTION("Character-mode Linux driver as a kernal module");
@@ -40,9 +41,9 @@ static int major_number;
 int retv; //return values of kernel functions.
 dev_t dev_num;  //holds major number and minor number
 
-extern char buf[BUF_LEN];
+extern char *buf;
 static char *buf_Ptr;
-static int buf_index = 0;
+extern int *buf_index;
 static int Dev_open = 0;
 
 static DEFINE_MUTEX(drgerberdev_mutex);
@@ -138,14 +139,14 @@ static ssize_t dev_read(struct file *filp, char *buffer, size_t length, loff_t *
 	int i = 0, j = 0, char_read;
 
 	// return 0 if the buffer is empty
-	if (buf_index == 0)
+	if (buf_index[0] == 0)
 	{
 		printk(KERN_INFO "The buffer is empty");
 		return 0;
 	}
 
 	// read from the buffer
-	for (i=0 ; i<length && i<buf_index ; i++)
+	for (i=0 ; i<length && i<buf_index[0] ; i++)
 	{
 		put_user(buf[i], buffer++);
 
@@ -155,20 +156,20 @@ static ssize_t dev_read(struct file *filp, char *buffer, size_t length, loff_t *
 	printk(KERN_INFO "Read %d characters from the buffer", char_read);
 
 	// if we read everything in the buffer
-	if (i == buf_index)
+	if (i == buf_index[0])
 	{
-		buf_index = 0;
+		buf_index[0] = 0;
 	}
 	// if we didn't read everything in the buffer
 	else 
 	{
 		// move what is left in the buffer
-		while (i < buf_index)
+		while (i < buf_index[0])
 		{
 			buf[j++] = buf[i++];
 		}
 
-		buf_index = j;
+		buf_index[0] = j;
 	}
 
 	// return the number of bytes read from the buffer

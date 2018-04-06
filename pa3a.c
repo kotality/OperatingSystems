@@ -13,6 +13,7 @@
 #include <linux/fs.h> //for open/close, read/write to device
 #include <asm/uaccess.h> //copy to user, from user (userSpace Kspace)
 #include <linux/mutex.h>
+#include <linux/vmalloc.h>
 
 MODULE_AUTHOR("Novaira Farnaz, Kenia Castro, Sandy Demian");
 MODULE_DESCRIPTION("Character-mode Linux driver as a kernal module");
@@ -40,12 +41,13 @@ static int major_number;
 int retv; //return values of kernel functions.
 dev_t dev_num;  //holds major number and minor number
 
-static char buf[BUF_LEN];
+static char *buf;
 static char *buf_Ptr;
-static int buf_index = 0;
+static int *buf_index;
 static int Dev_open = 0;
 
 EXPORT_SYMBOL(buf);
+EXPORT_SYMBOL(buf_index);
 static DEFINE_MUTEX(drgerberdev_mutex);
 
 struct file_operations fopi ={
@@ -58,7 +60,10 @@ struct file_operations fopi ={
 
 //Initialization: registers a character device driver to the system
 static int dev_entry(void){
-
+		buf = (char *)vmalloc(sizeof(char)*BUF_LEN);
+		buf[0] = '\0';
+		buf_index = (int *)vmalloc(sizeof(int)*2);
+		buf_index[0] = 0;
 		retv = alloc_chrdev_region(&dev_num,0,1,DEVICE_NAME); //starts major number with 0, max minor=1
 	if(retv<0) {
 	  printk(KERN_ALERT "Failed to allocate a major number");
@@ -149,15 +154,15 @@ static ssize_t dev_write(struct file *filp, const char *buffer, size_t length, l
 	int i;
 
 	// write to the buffer
-    for( i=0 ; i<length && (buf_index+i)<BUF_LEN ; i++)
+    for( i=0 ; i<length && (buf_index[0]+i)<BUF_LEN ; i++)
     {
-        get_user(buf[buf_index+i], buffer+i);
+        get_user(buf[buf_index[0]+i], buffer+i);
     }
 
     // update the buffer index
-    buf_index = buf_index+i;
+    buf_index[0] = buf_index[0]+i;
 
-    printk(KERN_INFO "Wrote %d characters to the buffer", i);
+    printk(KERN_INFO "Wrote %d characters to the buffer: [%s]", i, buf);
 
 	return length;
 }
