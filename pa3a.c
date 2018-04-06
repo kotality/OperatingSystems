@@ -46,6 +46,7 @@ static int buf_index = 0;
 static int Dev_open = 0;
 
 EXPORT_SYMBOL(buf);
+static DEFINE_MUTEX(drgerberdev_mutex);
 
 struct file_operations fopi ={
 	.owner = THIS_MODULE,
@@ -57,7 +58,8 @@ struct file_operations fopi ={
 
 //Initialization: registers a character device driver to the system
 static int dev_entry(void){
-	retv = alloc_chrdev_region(&dev_num,0,1,DEVICE_NAME); //starts major number with 0, max minor=1
+
+		retv = alloc_chrdev_region(&dev_num,0,1,DEVICE_NAME); //starts major number with 0, max minor=1
 	if(retv<0) {
 	  printk(KERN_ALERT "Failed to allocate a major number");
 	  return retv;
@@ -77,11 +79,18 @@ static int dev_entry(void){
 	}
 	//initialize our semaphore
 	sema_init(&virtual_device.sem,1); //inital value of one
+
+	// Initialize mutex lock
+	mutex_init(&drgerberdev_mutex);
+
 	return 0;
 }
 
 //Deinitialization function
 static void dev_exit(void) {
+
+	// Destroy allocated mutex
+	mutex_destroy(&drgerberdev_mutex);
 
 	cdev_del(mcdev);
 	unregister_chrdev_region(dev_num,1);
@@ -90,10 +99,18 @@ static void dev_exit(void) {
 
 // Open
 static int dev_open(struct inode *inode, struct file *filp) {
+	
 	static int count = 0;
 	
 	if (Dev_open)
 		return -EBUSY;
+
+	// Try to acquire the mutex (put lock on) Return 1 if succes; 0 contention
+	if (!mutex_trylock(&drgerberdev_mutex))
+	{
+		printk(KERN_ALERT "drgerberdev: Device in use by another process");
+		return -EBUSY;
+	}
 	
 	Dev_open++;
 	printk(KERN_INFO "Device has been opened %d times\n", count++);
@@ -106,6 +123,10 @@ static int dev_open(struct inode *inode, struct file *filp) {
 
 // Release
 static int dev_close(struct inode *inode, struct file *filp){
+	
+	// Release the mutex
+	mutex_unlock(&drgerberdev_mutex);
+
 	Dev_open--; // Ready for next caller
 	
 	printk(KERN_INFO "Goodbye!\n");

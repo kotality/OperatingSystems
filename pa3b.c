@@ -40,10 +40,12 @@ static int major_number;
 int retv; //return values of kernel functions.
 dev_t dev_num;  //holds major number and minor number
 
-static extern char buf[BUF_LEN];
+extern char buf[BUF_LEN];
 static char *buf_Ptr;
 static int buf_index = 0;
 static int Dev_open = 0;
+
+static DEFINE_MUTEX(drgerberdev_mutex);
 
 struct file_operations fopi ={
 	.owner = THIS_MODULE,
@@ -75,11 +77,18 @@ static int dev_entry(void){
 	}
 	//initialize our semaphore
 	sema_init(&virtual_device.sem,1); //inital value of one
+
+	// Initialize mutex lock
+	mutex_init(&drgerberdev_mutex);
+
 	return 0;
 }
 
 //Deinitialization function
 static void dev_exit(void) {
+
+	// Destroy allocated mutex
+	mutex_destroy(&drgerberdev_mutex);
 
 	cdev_del(mcdev);
 	unregister_chrdev_region(dev_num,1);
@@ -92,6 +101,13 @@ static int dev_open(struct inode *inode, struct file *filp) {
 	
 	if (Dev_open)
 		return -EBUSY;
+
+	// Try to acquire the mutex (put lock on) Return 1 if succes; 0 contention
+	if (!mutex_trylock(&drgerberdev_mutex))
+	{
+		printk(KERN_ALERT "drgerberdev: Device in use by another process");
+		return -EBUSY;
+	}
 	
 	Dev_open++;
 	printk(KERN_INFO "Device has been opened %d times\n", count++);
@@ -104,6 +120,10 @@ static int dev_open(struct inode *inode, struct file *filp) {
 
 // Release
 static int dev_close(struct inode *inode, struct file *filp){
+	
+	// Release the mutex
+	mutex_unlock(&drgerberdev_mutex);
+
 	Dev_open--; // Ready for next caller
 	
 	printk(KERN_INFO "Goodbye!\n");
