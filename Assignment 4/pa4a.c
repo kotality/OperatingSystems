@@ -1,6 +1,6 @@
 /* 
 	Novaira Farnaz, Kenia Castro, Sandy Demian
-	Prog Assn #3 - Character-mode Linux driver
+	Prog Assn #4 - Character-mode Linux driver
 	COP 4600, Spring 2018
 */
 //Kernel module for input device
@@ -46,6 +46,7 @@ static char *buf_Ptr;
 static int *buf_index;
 static int Dev_open = 0;
 static int ucflocations[28]; // to save the indexes of "UCF"s that are in the buffer already
+static int locindex = 0;
 
 EXPORT_SYMBOL(buf);
 EXPORT_SYMBOL(buf_index);
@@ -191,6 +192,7 @@ static ssize_t dev_write(struct file *filp, const char *buffer, size_t length, l
     			{
     				get_user(buf[buf_index[0]+k], champs[k]);
     			}
+    			ucflocations[locindex++] = buf_index[0]+k-3;
     		}
     		// there are other stuff in the buffer
     		else
@@ -206,6 +208,7 @@ static ssize_t dev_write(struct file *filp, const char *buffer, size_t length, l
     			{
     				get_user(i+3+k], champs[k]);
     			}
+    			ucflocations[locindex++] = k+i;
     		}
     		// update i which is the charachters written
     		i = i+k;

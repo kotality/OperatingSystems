@@ -1,6 +1,6 @@
 /* 
 	Novaira Farnaz, Kenia Castro, Sandy Demian
-	Prog Assn #3 - Character-mode Linux driver
+	Prog Assn #4 - Character-mode Linux driver
 	COP 4600, Spring 2018
 */
 //Kernel module for output device
@@ -46,6 +46,7 @@ static char *buf_Ptr;
 extern int *buf_index;
 static int Dev_open = 0;
 extern int ucflocations[28]; // to save the indexes of "UCF"s that are in the buffer already
+extern int locindex;
 
 static DEFINE_MUTEX(drgerberdev_mutex);
 
@@ -177,7 +178,10 @@ static ssize_t dev_read(struct file *filp, char *buffer, size_t length, loff_t *
 	for(l=0 ; l<28 ; l++)
 	{
 		if(ucflocations[l] >= buf_index[0])
-			ucflocations[l] = -1;
+		{
+			locindex = l;
+			break;
+		}
 	}
 
 	// return the number of bytes read from the buffer
