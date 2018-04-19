@@ -1,6 +1,6 @@
 /* 
 	Novaira Farnaz, Kenia Castro, Sandy Demian
-	Prog Assn #4 - Character-mode Linux driver
+	Prog Assn #3 - Character-mode Linux driver
 	COP 4600, Spring 2018
 */
 //Kernel module for input device
@@ -13,6 +13,7 @@
 #include <linux/fs.h> //for open/close, read/write to device
 #include <asm/uaccess.h> //copy to user, from user (userSpace Kspace)
 #include <linux/mutex.h>
+#include <linux/vmalloc.h>
 
 MODULE_AUTHOR("Novaira Farnaz, Kenia Castro, Sandy Demian");
 MODULE_DESCRIPTION("Character-mode Linux driver as a kernal module");
@@ -40,12 +41,16 @@ static int major_number;
 int retv; //return values of kernel functions.
 dev_t dev_num;  //holds major number and minor number
 
-static char buf[BUF_LEN];
+static char *buf;
 static char *buf_Ptr;
-static int buf_index = 0;
+static int *buf_index;
 static int Dev_open = 0;
+static int ucflocations[28]; // to save the indexes of "UCF"s that are in the buffer already
 
 EXPORT_SYMBOL(buf);
+EXPORT_SYMBOL(buf_index);
+EXPORT_SYMBOL(ucflocations);
+static DEFINE_MUTEX(drgerberdev_mutex);
 
 struct file_operations fopi ={
 	.owner = THIS_MODULE,
@@ -57,7 +62,11 @@ struct file_operations fopi ={
 
 //Initialization: registers a character device driver to the system
 static int dev_entry(void){
-	retv = alloc_chrdev_region(&dev_num,0,1,DEVICE_NAME); //starts major number with 0, max minor=1
+		buf = (char *)vmalloc(sizeof(char)*BUF_LEN);
+		buf[0] = '\0';
+		buf_index = (int *)vmalloc(sizeof(int)*2);
+		buf_index[0] = 0;
+		retv = alloc_chrdev_region(&dev_num,0,1,DEVICE_NAME); //starts major number with 0, max minor=1
 	if(retv<0) {
 	  printk(KERN_ALERT "Failed to allocate a major number");
 	  return retv;
@@ -77,11 +86,18 @@ static int dev_entry(void){
 	}
 	//initialize our semaphore
 	sema_init(&virtual_device.sem,1); //inital value of one
+
+	// Initialize mutex lock
+	mutex_init(&drgerberdev_mutex);
+
 	return 0;
 }
 
 //Deinitialization function
 static void dev_exit(void) {
+
+	// Destroy allocated mutex
+	mutex_destroy(&drgerberdev_mutex);
 
 	cdev_del(mcdev);
 	unregister_chrdev_region(dev_num,1);
@@ -90,10 +106,18 @@ static void dev_exit(void) {
 
 // Open
 static int dev_open(struct inode *inode, struct file *filp) {
+	
 	static int count = 0;
 	
 	if (Dev_open)
 		return -EBUSY;
+
+	// Try to acquire the mutex (put lock on) Return 1 if succes; 0 contention
+	if (!mutex_trylock(&drgerberdev_mutex))
+	{
+		printk(KERN_ALERT "drgerberdev: Device in use by another process");
+		return -EBUSY;
+	}
 	
 	Dev_open++;
 	printk(KERN_INFO "Device has been opened %d times\n", count++);
@@ -106,6 +130,10 @@ static int dev_open(struct inode *inode, struct file *filp) {
 
 // Release
 static int dev_close(struct inode *inode, struct file *filp){
+	
+	// Release the mutex
+	mutex_unlock(&drgerberdev_mutex);
+
 	Dev_open--; // Ready for next caller
 	
 	printk(KERN_INFO "Goodbye!\n");
@@ -125,18 +153,70 @@ static ssize_t dev_read(struct file *filp, char *buffer, size_t length, loff_t *
 // write to the buffer
 static ssize_t dev_write(struct file *filp, const char *buffer, size_t length, loff_t * off)
 {	
-	int i;
+	int i, j, k, l;
+	char champs = "Undefeated 2018 National Champions UCF";
+	int strlen = 38;
+	int leave = 0;
 
 	// write to the buffer
-    for( i=0 ; i<length && (buf_index+i)<BUF_LEN ; i++)
+    for( i=0 ; i<length && (buf_index[0]+i)<BUF_LEN ; i++)
     {
-        get_user(buf[buf_index+i], buffer+i);
+        get_user(buf[buf_index[0]+i], buffer+i);
+    }
+
+    // assignment 4
+    for(j=0 ; j<buf_index[0] ; j++)
+    {
+    	// if "UCF" is found in the buffer
+    	if((j+2)<buf_index[0] && buf[j] == 'U' && buf[j+1] == 'C' && buf[j+2] == 'F')
+    	{
+    		// check if this "UCF" was already there, not sure if this is the best way
+    		for(l=0 ; l<28 ; l++)
+    		{
+    			if(j == ucflocations[l])
+    				leave = 1;
+    		}
+
+    		if(leave == 1)
+    		{
+    			leave = 0;
+    			break;
+    		}
+
+    		// UCF was the last thing in the buffer
+    		if((j+3) >= buf_index[0])
+    		{
+    			// just add the new string to the end of the buffer
+    			for(k=0 ; k<BUF_LEN || k<strlen ; k++)
+    			{
+    				get_user(buf[buf_index[0]+k], champs[k]);
+    			}
+    		}
+    		// there are other stuff in the buffer
+    		else
+    		{
+    			int s = i+3;
+    			// make room for our new string
+    			while(s < buf_index[0] && (s+strlen-3) < BUF_LEN)
+    			{
+    				get_user(s+strlen-3], buf[s]);
+    			}
+    			// write our new string
+    			for(k=0 ; k < BUF_LEN || k < strlen ; k++)
+    			{
+    				get_user(i+3+k], champs[k]);
+    			}
+    		}
+    		// update i which is the charachters written
+    		i = i+k;
+    	}
+
     }
 
     // update the buffer index
-    buf_index = buf_index+i;
+    buf_index[0] = buf_index[0]+i;
 
-    printk(KERN_INFO "Wrote %d characters to the buffer", i);
+    printk(KERN_INFO "Wrote %d characters to the buffer: [%s]", i, buf);
 
 	return length;
 }

@@ -13,6 +13,7 @@
 #include <linux/fs.h> //for open/close, read/write to device
 #include <asm/uaccess.h> //copy to user, from user (userSpace Kspace)
 #include <linux/mutex.h>
+#include <linux/vmalloc.h>
 
 MODULE_AUTHOR("Novaira Farnaz, Kenia Castro, Sandy Demian");
 MODULE_DESCRIPTION("Character-mode Linux driver as a kernal module");
@@ -40,10 +41,13 @@ static int major_number;
 int retv; //return values of kernel functions.
 dev_t dev_num;  //holds major number and minor number
 
-static extern char buf[BUF_LEN];
+extern char *buf;
 static char *buf_Ptr;
-static int buf_index = 0;
+extern int *buf_index;
 static int Dev_open = 0;
+extern int ucflocations[28]; // to save the indexes of "UCF"s that are in the buffer already
+
+static DEFINE_MUTEX(drgerberdev_mutex);
 
 struct file_operations fopi ={
 	.owner = THIS_MODULE,
@@ -75,11 +79,18 @@ static int dev_entry(void){
 	}
 	//initialize our semaphore
 	sema_init(&virtual_device.sem,1); //inital value of one
+
+	// Initialize mutex lock
+	mutex_init(&drgerberdev_mutex);
+
 	return 0;
 }
 
 //Deinitialization function
 static void dev_exit(void) {
+
+	// Destroy allocated mutex
+	mutex_destroy(&drgerberdev_mutex);
 
 	cdev_del(mcdev);
 	unregister_chrdev_region(dev_num,1);
@@ -92,6 +103,13 @@ static int dev_open(struct inode *inode, struct file *filp) {
 	
 	if (Dev_open)
 		return -EBUSY;
+
+	// Try to acquire the mutex (put lock on) Return 1 if succes; 0 contention
+	if (!mutex_trylock(&drgerberdev_mutex))
+	{
+		printk(KERN_ALERT "drgerberdev: Device in use by another process");
+		return -EBUSY;
+	}
 	
 	Dev_open++;
 	printk(KERN_INFO "Device has been opened %d times\n", count++);
@@ -104,6 +122,10 @@ static int dev_open(struct inode *inode, struct file *filp) {
 
 // Release
 static int dev_close(struct inode *inode, struct file *filp){
+	
+	// Release the mutex
+	mutex_unlock(&drgerberdev_mutex);
+
 	Dev_open--; // Ready for next caller
 	
 	printk(KERN_INFO "Goodbye!\n");
@@ -115,17 +137,17 @@ static int dev_close(struct inode *inode, struct file *filp){
 // read from the buffer
 static ssize_t dev_read(struct file *filp, char *buffer, size_t length, loff_t * offset){
 	
-	int i = 0, j = 0, char_read;
+	int i = 0, j = 0, char_read, l;
 
 	// return 0 if the buffer is empty
-	if (buf_index == 0)
+	if (buf_index[0] == 0)
 	{
 		printk(KERN_INFO "The buffer is empty");
 		return 0;
 	}
 
 	// read from the buffer
-	for (i=0 ; i<length && i<buf_index ; i++)
+	for (i=0 ; i<length && i<buf_index[0] ; i++)
 	{
 		put_user(buf[i], buffer++);
 
@@ -135,20 +157,27 @@ static ssize_t dev_read(struct file *filp, char *buffer, size_t length, loff_t *
 	printk(KERN_INFO "Read %d characters from the buffer", char_read);
 
 	// if we read everything in the buffer
-	if (i == buf_index)
+	if (i == buf_index[0])
 	{
-		buf_index = 0;
+		buf_index[0] = 0;
 	}
 	// if we didn't read everything in the buffer
 	else 
 	{
 		// move what is left in the buffer
-		while (i < buf_index)
+		while (i < buf_index[0])
 		{
 			buf[j++] = buf[i++];
 		}
 
-		buf_index = j;
+		buf_index[0] = j;
+	}
+
+	// removing the indexes that had "UCF" but are now removed from the buffer
+	for(l=0 ; l<28 ; l++)
+	{
+		if(ucflocations[l] >= buf_index[0])
+			ucflocations[l] = -1;
 	}
 
 	// return the number of bytes read from the buffer
