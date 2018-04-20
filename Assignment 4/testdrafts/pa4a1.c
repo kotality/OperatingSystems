@@ -46,11 +46,12 @@ static char *buf_Ptr;
 static int *buf_index;
 static int Dev_open = 0;
 static int *ucflocations; // to save the indexes of "UCF"s that are in the buffer already
-static int locindex = 0;
+static int *locindex;
 
 EXPORT_SYMBOL(buf);
 EXPORT_SYMBOL(buf_index);
 EXPORT_SYMBOL(ucflocations);
+EXPORT_SYMBOL(locindex);
 static DEFINE_MUTEX(drgerberdev_mutex);
 
 struct file_operations fopi ={
@@ -68,7 +69,9 @@ static int dev_entry(void){
 		buf_index = (int *)vmalloc(sizeof(int)*2);
 		buf_index[0] = 0;
 		ucflocations = (int *)vmalloc(sizeof(int)*28);
-
+		locindex = (int *)vmalloc(sizeof(int)*2);
+		locindex[0] = 0;
+	
 		retv = alloc_chrdev_region(&dev_num,0,1,DEVICE_NAME); //starts major number with 0, max minor=1
 	if(retv<0) {
 	  printk(KERN_ALERT "Failed to allocate a major number");
@@ -194,7 +197,7 @@ static ssize_t dev_write(struct file *filp, const char *buffer, size_t length, l
     			{
     				get_user(buf[buf_index[0]+k], champs+k);
     			}
-    			ucflocations[locindex++] = buf_index[0]+k-3;
+    			ucflocations[locindex[0]++] = buf_index[0]+k-3;
     		}
     		// there are other stuff in the buffer
     		else
@@ -210,7 +213,7 @@ static ssize_t dev_write(struct file *filp, const char *buffer, size_t length, l
     			{
     				get_user(buf[buf_index[0]+i+3+k], champs+k);
     			}
-    			ucflocations[locindex++] = k+i;
+    			ucflocations[locindex[0]++] = k+i;
     		}
     		// update i which is the charachters written
     		i = i+k;
