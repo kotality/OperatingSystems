@@ -46,7 +46,7 @@ static char *buf_Ptr;
 extern int *buf_index;
 extern int *ucflocations;
 static int Dev_open = 0;
-static int locindex = 0;
+extern int locindex;
 
 static DEFINE_MUTEX(drgerberdev2_mutex);
 
@@ -179,7 +179,7 @@ static ssize_t dev_read(struct file *filp, char *buffer, size_t length, loff_t *
 	{
 		if(ucflocations[l] >= buf_index[0])
 		{
-			locindex = l;
+			locindex[0] = l;
 			break;
 		}
 	}
