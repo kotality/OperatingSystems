@@ -1,5 +1,5 @@
-obj-m += pa4a1.o 
-obj-m += pa4b1.o
+obj-m += pa4a.o 
+obj-m += pa4b.o
 
 all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
