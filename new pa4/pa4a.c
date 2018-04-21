@@ -206,7 +206,7 @@ static ssize_t dev_write(struct file *filp, const char *buffer, size_t length, l
     			// make room for our new string
     			while(s < buf_index[0] && (s+strlen) < BUF_LEN)
     			{
-                                buf[s+strlen] = buf[s];
+                                buf[s+strlen-3] = buf[s];
                                 s++;
     			}
     			// write our new string
@@ -216,7 +216,7 @@ static ssize_t dev_write(struct file *filp, const char *buffer, size_t length, l
     			}
     			//ucflocations[locindex++] = k+i;
                         // update the buffer index
-    	                buf_index[0] = s+strlen;
+    	                buf_index[0] = s+strlen-3;
 			j = j+strlen;
     		}
     		// update i which is the charachters written
