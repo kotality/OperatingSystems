@@ -68,7 +68,7 @@ static int dev_entry(void){
 		buf[0] = '\0';
 		buf_index = (int *)vmalloc(sizeof(int)*2);
 		buf_index[0] = 0;
-        //loc_index[0] = -1;
+                //loc_index[0] = -1;
 		retv = alloc_chrdev_region(&dev_num,0,1,DEVICE_NAME); //starts major number with 0, max minor=1
 	if(retv<0) {
 	  printk(KERN_ALERT "Failed to allocate a major number");
@@ -174,22 +174,20 @@ static ssize_t dev_write(struct file *filp, const char *buffer, size_t length, l
     	// if "UCF" is found in the buffer
     	if((j+2)<buf_index[0] && buf[j] == 'U' && buf[j+1] == 'C' && buf[j+2] == 'F')
     	{
-            //loc_index[0] = j+strlen-3;
-    		// check if this "UCF" was already there, not sure if this is the best way
-    		/*for(l=0 ; l<28 ; l++)
-    		{
-    			if(j == ucflocations[l])
-    				leave = 1;
-    		}
+		int t = 0, counter = 0;
+		for(i=j+3-strlen ; i>0 && i<(j+3) ; i++)
+		{
+			if(buf[i] == champs[t])
+				counter++;
+			t++;
+		}
 
-    		if(leave == 1)
-    		{
-    			leave = 0;
-    			break;
-    		}*/
-
+		if(counter == strlen)
+		{
+			j = j+3;
+		}
     		// UCF was the last thing in the buffer
-    		if((j+3) >= buf_index[0])
+    		else if((j+3) >= buf_index[0])
     		{
     			// just add the new string to the end of the buffer
     			for(k=0 ; (buf_index[0]+k)<BUF_LEN && k<strlen ; k++)
@@ -198,13 +196,13 @@ static ssize_t dev_write(struct file *filp, const char *buffer, size_t length, l
     			}
     			//ucflocations[locindex++] = buf_index[0]+k-3;
 			// update the buffer index
-    			buf_index[0] = j+3+k;
+    			buf_index[0] = j+k;
                         j = buf_index[0];
     		}
     		// there are other stuff in the buffer
     		else
     		{
-    			int s = j;
+    			int s = j+3;
     			// make room for our new string
     			while(s < buf_index[0] && (s+strlen) < BUF_LEN)
     			{
